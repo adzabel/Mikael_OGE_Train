@@ -7,12 +7,33 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const pool = new Pool({
-  host: process.env.PGHOST || 'localhost',
-  port: process.env.PGPORT ? parseInt(process.env.PGPORT) : 5432,
-  user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD || '',
-  database: process.env.PGDATABASE || 'oge'
+// Поддерживаем несколько вариантов конфигурации подключения:
+// 1) Строка подключения в NEON_DATABASE_URL (Neon) или DATABASE_URL
+// 2) Классические переменные PGHOST/PGUSER/PGPASSWORD/PGDATABASE
+let pool;
+const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || null;
+if (connectionString) {
+  // Если используется строка подключения (например, Neon), включим SSL
+  pool = new Pool({
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+  console.log('Using connection string from NEON_DATABASE_URL/DATABASE_URL');
+} else {
+  pool = new Pool({
+    host: process.env.PGHOST || 'localhost',
+    port: process.env.PGPORT ? parseInt(process.env.PGPORT) : 5432,
+    user: process.env.PGUSER || 'postgres',
+    password: process.env.PGPASSWORD || '',
+    database: process.env.PGDATABASE || 'oge'
+  });
+  console.log('Using individual PG_* environment variables for DB connection');
+}
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle Postgres client', err);
 });
 
 // GET /api/tests - list tests
