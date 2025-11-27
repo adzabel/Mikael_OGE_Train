@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ОГЭ тренажёр по русскому языку</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ОГЭ тренажёр по русскому языку</h1>
+            <div class="subtitle">Эффективная подготовка к экзамену</div>
+        </header>
+        
+        <div class="main-content">
+            <div class="navigation-panel">
+                <button class="nav-btn active" data-screen="start">
+                    <span class="nav-icon">🏠</span>
+                    <span>Главная</span>
+                </button>
+                <button class="nav-btn" data-screen="theory">
+                    <span class="nav-icon">📚</span>
+                    <span>Теория</span>
+                </button>
+                <button class="nav-btn" data-screen="practice">
+                    <span class="nav-icon">✏️</span>
+                    <span>Практика</span>
+                </button>
+                <button class="nav-btn" data-screen="results">
+                    <span class="nav-icon">📊</span>
+                    <span>Результаты</span>
+                </button>
+            </div>
+            
+            <div class="content-area">
+                <!-- Главный экран -->
+                <div id="start-screen" class="screen active">
+                    <div class="section-title">Начните подготовку к ОГЭ</div>
+                    <div class="welcome-card">
+                        <div class="welcome-icon">📖</div>
+                        <h3>Эффективная подготовка к ОГЭ по русскому языку</h3>
+                        <p>Этот тренажёр поможет вам систематизировать знания и успешно сдать экзамен. Выберите подходящий раздел для начала работы.</p>
+                        
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <div class="feature-icon">📚</div>
+                                <h4>Теория</h4>
+                                <p>Полный курс правил русского языка с примерами и пояснениями</p>
+                            </div>
+                            
+                            <div class="feature-card">
+                                <div class="feature-icon">✏️</div>
+                                <h4>Практика</h4>
+                                <p>Разнообразные задания для закрепления знаний и навыков</p>
+                            </div>
+                            
+                            <div class="feature-card">
+                                <div class="feature-icon">📊</div>
+                                <h4>Результаты</h4>
+                                <p>Подробная статистика и анализ ваших достижений</p>
+                            </div>
+                        </div>
+                        
+                        <div class="btn-group center">
+                            <button class="btn btn-large" data-screen="theory">
+                                <span>Изучить теорию</span>
+                            </button>
+                            <button class="btn btn-large btn-secondary" data-screen="practice">
+                                <span>Начать практику</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Экран теории -->
+                <div id="theory-screen" class="screen">
+                    <div class="section-title">Теоретические материалы</div>
+                    
+                    <div class="navigation-panel" style="flex: 0 0 auto; margin-bottom: 2rem; padding: 1.5rem;">
+                        <button class="nav-btn active" data-section="all">
+                            <span>Все разделы</span>
+                        </button>
+                        <button class="nav-btn" data-section="spelling">
+                            <span>Орфография</span>
+                        </button>
+                        <div class="subsection-nav" id="spelling-subsections">
+                            <button class="subsection-btn active" data-subsection="all">Все подразделы</button>
+                            <button class="subsection-btn" data-subsection="morphemes">Правописание морфем</button>
+                            <button class="subsection-btn" data-subsection="spelling_rules">Слитное, дефисное и раздельное написание</button>
+                        </div>
+                        <button class="nav-btn" data-section="grammar">
+                            <span>Грамматика</span>
+                        </button>
+                        <div class="subsection-nav" id="grammar-subsections">
+                            <button class="subsection-btn active" data-subsection="all">Все подразделы</button>
+                            <button class="subsection-btn" data-subsection="alternating_prefixes">Чередующиеся приставки</button>
+                            <button class="subsection-btn" data-subsection="vocabulary_words">Словарные слова</button>
+                            <button class="subsection-btn" data-subsection="n_nn">Н/НН в разных частях речи</button>
+                            <button class="subsection-btn" data-subsection="o_e_after_hissing">О/Е после шипящих</button>
+                            <button class="subsection-btn" data-subsection="prefixes_z_s">Приставки на З/С</button>
+                            <button class="subsection-btn" data-subsection="soft_hard_sign">Ь/Ъ после приставок</button>
+                            <button class="subsection-btn" data-subsection="pre_pri">Правописание приставок ПРЕ-ПРИ</button>
+                        </div>
+                        <button class="nav-btn" data-section="punctuation">
+                            <span>Пунктуация</span>
+                        </button>
+                    </div>
+                    
+                    <div class="theory-content">
+                        <div class="card">
+                            <h3>Теоретические материалы</h3>
+                            <p>Выберите раздел теории из меню слева для изучения материала.</p>
+                            <p>Здесь будут расположены все теоретические материалы по русскому языку для подготовки к ОГЭ.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Экран практики -->
+                <div id="practice-screen" class="screen">
+                    <div class="section-title">Практические задания</div>
+                    
+                    <div class="navigation-panel" style="flex: 0 0 auto; margin-bottom: 2rem; padding: 1.5rem;">
+                        <button class="nav-btn active" data-section="all">
+                            <span>Все задания</span>
+                        </button>
+                        <button class="nav-btn" data-section="spelling">
+                            <span>Орфография</span>
+                        </button>
+                        <div class="subsection-nav" id="spelling-subsections">
+                            <button class="subsection-btn active" data-subsection="all">Все подразделы</button>
+                            <button class="subsection-btn" data-subsection="morphemes">Правописание морфем</button>
+                            <button class="subsection-btn" data-subsection="spelling_rules">Слитное, дефисное и раздельное написание</button>
+                        </div>
+                        <button class="nav-btn" data-section="grammar">
+                            <span>Грамматика</span>
+                        </button>
+                        <div class="subsection-nav" id="grammar-subsections">
+                            <button class="subsection-btn active" data-subsection="all">Все подразделы</button>
+                            <button class="subsection-btn" data-subsection="alternating_prefixes">Чередующиеся приставки</button>
+                            <button class="subsection-btn" data-subsection="vocabulary_words">Словарные слова</button>
+                            <button class="subsection-btn" data-subsection="n_nn">Н/НН в разных частях речи</button>
+                            <button class="subsection-btn" data-subsection="o_e_after_hissing">О/Е после шипящих</button>
+                            <button class="subsection-btn" data-subsection="prefixes_z_s">Приставки на З/С</button>
+                            <button class="subsection-btn" data-subsection="soft_hard_sign">Ь/Ъ после приставок</button>
+                            <button class="subsection-btn" data-subsection="pre_pri">Правописание приставок ПРЕ-ПРИ</button>
+                        </div>
+                        <button class="nav-btn" data-section="punctuation">
+                            <span>Пунктуация</span>
+                        </button>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Прогресс</span>
+                            <span id="progress-text">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-bar"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="question-container">
+                        <div class="card">
+                            <div class="question-text" id="question-text">Выберите раздел для начала практики</div>
+                            <div class="options-container" id="answers-container"></div>
+                            
+                            <div class="btn-group">
+                                <button class="btn" id="answer-btn">Ответить</button>
+                                <button class="btn" id="next-btn" style="display: none;">Следующий вопрос</button>
+                                <button class="btn btn-secondary" id="shuffle-btn">Перемешать вопросы</button>
+                            </div>
+                            
+                            <div class="result-container">
+                                <div id="result" class="result hidden"></div>
+                                <div id="explanation" class="explanation hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Экран результатов -->
+                <div id="results-screen" class="screen">
+                    <div class="section-title">Результаты тестирования</div>
+                    
+                    <div class="results-content">
+                        <div class="results-header">
+                            <div class="results-icon">📊</div>
+                            <h3>Анализ ваших достижений</h3>
+                            <p>Здесь вы можете отслеживать свой прогресс в подготовке к экзамену</p>
+                        </div>
+                        
+                        <div class="results-stats">
+                            <div class="stat-card">
+                                <div class="stat-value" id="total-score">0</div>
+                                <div class="stat-label">Всего пройдено тестов</div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="stat-value" id="average-score">0%</div>
+                                <div class="stat-label">Средний результат</div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="stat-value" id="best-score">0%</div>
+                                <div class="stat-label">Лучший результат</div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="stat-value" id="total-questions">0</div>
+                                <div class="stat-label">Всего вопросов</div>
+                            </div>
+                        </div>
+                        
+                        <div class="results-details">
+                            <div class="detail-card">
+                                <h3>Текущий тест</h3>
+                                <div class="progress-circle">
+                                    <svg viewBox="0 0 100 100">
+                                        <circle class="circle-bg" cx="50" cy="50" r="40"></circle>
+                                        <circle class="circle-progress" cx="50" cy="50" r="40" id="results-circle"></circle>
+                                        <text class="circle-text" x="50" y="50" text-anchor="middle" dy="0.3em" id="results-percentage">0%</text>
+                                    </svg>
+                                </div>
+                                <p>Правильных ответов: <strong id="current-correct">0</strong> из <strong id="current-total">0</strong></p>
+                                <p id="results-message">Начните практику, чтобы увидеть свои результаты</p>
+                            </div>
+                            
+                            <div class="detail-card">
+                                <h3>Рекомендации</h3>
+                                <p>На основе ваших результатов мы подготовили рекомендации для улучшения знаний:</p>
+                                <ul style="text-align: left; margin-top: 1rem;">
+                                    <li>Повторите правила орфографии</li>
+                                    <li>Обратите внимание на пунктуацию</li>
+                                    <li>Практикуйтесь регулярно</li>
+                                    <li>Используйте теорию для закрепления</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="btn-group center">
+                            <button class="btn btn-large" id="restart-btn">Пройти ещё раз</button>
+                            <button class="btn btn-large btn-secondary" data-screen="practice">К практике</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>ОГЭ тренажёр по русскому языку • Для 8 класса</p>
+        </footer>
+    </div>
+
+    <script src="js/script.js" defer></script>
+</body>
+</html>
