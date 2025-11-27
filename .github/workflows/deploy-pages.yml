@@ -64,13 +64,12 @@ jobs:
             exit 1
           fi
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v3
-
-      - name: Upload artifact for Pages
-        uses: actions/upload-pages-artifact@v1
+      - name: Deploy to GitHub Pages via gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: ./artifact
-
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+          # Use a Personal Access Token (PAT) stored in repository secret `GH_PAGES_PAT`.
+          # Ensure the token has `repo` scope or repo write access for this repository.
+          personal_token: ${{ secrets.GH_PAGES_PAT }}
+          publish_dir: ./artifact
+          publish_branch: gh-pages
+          allow_empty_commit: false
