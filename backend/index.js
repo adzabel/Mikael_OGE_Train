@@ -7,12 +7,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Добавим заголовок версии сервиса, чтобы можно было отличать инстансы
-const serviceVersion = process.env.SERVICE_VERSION || new Date().toISOString();
-app.use((req, res, next) => {
-  res.setHeader('X-Service-Version', serviceVersion);
-  next();
-});
 
 // Поддерживаем несколько вариантов конфигурации подключения:
 // 1) Строка подключения в NEON_DATABASE_URL (Neon) или DATABASE_URL
@@ -214,5 +208,4 @@ app.get('/health', (req, res) => {
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`OGE backend listening on port ${port}`);
-  console.log(`Service version: ${serviceVersion}`);
 });
