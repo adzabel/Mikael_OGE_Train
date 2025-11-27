@@ -108,14 +108,10 @@ class OGEClass {
                         await this.loadQuestions();
                     }
 
-                    // Найдём тест с полем id_test === 1 в полученном списке
-                    let targetId = 1;
-                    if (Array.isArray(this.tests) && this.tests.length > 0) {
-                        const found = this.tests.find(t => Number(t.id_test) === 1 || Number(t.id) === 1);
-                        if (found) targetId = found.id_test || found.id || 1;
-                    }
-
-                    await this.loadTestById(targetId);
+                    // Явно используем id_test = 1 для раздела "Грамматика"
+                    // Приводим к числу на всякий случай
+                    const targetId = 1;
+                    await this.loadTestById(Number(targetId));
                     this.filterQuestions();
                     this.updateQuestionCount();
 
