@@ -99,9 +99,46 @@ class OGEClass {
         this.currentSection = section;
         this.currentSubsection = 'all';
         this.showSubsections(section);
+        // Если выбран раздел "Грамматика", подгружаем тест с id_test = 1
+        if (section === 'grammar') {
+            (async () => {
+                try {
+                    // Если список тестов ещё не загружен, подгружаем его
+                    if (!this.tests || this.tests.length === 0) {
+                        await this.loadQuestions();
+                    }
+
+                    // Найдём тест с полем id_test === 1 в полученном списке
+                    let targetId = 1;
+                    if (Array.isArray(this.tests) && this.tests.length > 0) {
+                        const found = this.tests.find(t => Number(t.id_test) === 1 || Number(t.id) === 1);
+                        if (found) targetId = found.id_test || found.id || 1;
+                    }
+
+                    await this.loadTestById(targetId);
+                    this.filterQuestions();
+                    this.updateQuestionCount();
+
+                    // Если тест уже начат, перезапускаем
+                    if (this.isTestStarted()) {
+                        this.restartTest();
+                    } else {
+                        this.updateQuestionDisplay();
+                    }
+                } catch (err) {
+                    console.error('Ошибка при загрузке теста grammar:', err);
+                    this.questions = [];
+                    this.filteredQuestions = [];
+                    this.updateQuestionDisplay();
+                }
+            })();
+
+            return;
+        }
+
         this.filterQuestions();
         this.updateQuestionCount();
-        
+
         // Если тест уже начат, перезапускаем
         if (this.isTestStarted()) {
             this.restartTest();
@@ -171,6 +208,29 @@ class OGEClass {
             console.error('loadQuestions error:', err);
             this.questions = [];
             this.filteredQuestions = [];
+        }
+    }
+
+    async loadTestById(testId) {
+        // Загружаем конкретный тест по id
+        try {
+            const qResp = await fetch(`${API_BASE}/api/tests/${testId}/questions`);
+            if (!qResp.ok) throw new Error('Не удалось загрузить вопросы теста ' + testId);
+            const questions = await qResp.json();
+
+            this.questions = questions.map(q => ({
+                questions_id: q.questions_id,
+                question: q.question_text,
+                type: q.question_type,
+                answers: q.answers || [],
+                correct: q.correct,
+                explanation: q.explanation || ''
+            }));
+
+            this.filteredQuestions = [...this.questions];
+        } catch (err) {
+            console.error('loadTestById error:', err);
+            throw err;
         }
     }
     
