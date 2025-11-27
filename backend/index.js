@@ -26,10 +26,31 @@ app.get('/api/tests', async (req, res) => {
   }
 });
 
+// GET /api/tests/:id - вернуть информацию по конкретному тесту
+app.get('/api/tests/:id', async (req, res) => {
+  const testId = Number(req.params.id);
+  if (Number.isNaN(testId)) return res.status(400).json({ error: 'invalid test id' });
+
+  try {
+    const { rows } = await pool.query('SELECT id_test, name_test, type_test, difficulty_test FROM tests WHERE id_test = $1 LIMIT 1', [testId]);
+    if (!rows || rows.length === 0) return res.status(404).json({ error: 'test not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'database error' });
+  }
+});
+
 // GET /api/tests/:id/questions - list questions with options for a test
 app.get('/api/tests/:id/questions', async (req, res) => {
-  const testId = req.params.id;
+  const testId = Number(req.params.id);
+  if (Number.isNaN(testId)) return res.status(400).json({ error: 'invalid test id' });
+
   try {
+    // Проверим, существует ли тест
+    const tRes = await pool.query('SELECT id_test FROM tests WHERE id_test = $1 LIMIT 1', [testId]);
+    if (!tRes.rows || tRes.rows.length === 0) return res.status(404).json({ error: 'test not found' });
+
     const qRes = await pool.query('SELECT questions_id, questions_test_id, question_text, question_type FROM questions WHERE questions_test_id = $1 ORDER BY questions_id', [testId]);
     const questions = qRes.rows;
 
@@ -70,6 +91,8 @@ app.get('/api/tests/:id/questions', async (req, res) => {
       });
     }
 
+    // Если вопросов нет — вернём пустой массив 200 (фронтенд может это обрабатывать),
+    // но тест уже существует (мы проверили выше).
     res.json(out);
   } catch (err) {
     console.error(err);
@@ -80,7 +103,8 @@ app.get('/api/tests/:id/questions', async (req, res) => {
 // POST /api/tests/:id/submit - оценить ответы пользователя
 // Ожидаемый формат body: { answers: [ { question_id: <num>, answer: <index|[indexes]|text> } ] }
 app.post('/api/tests/:id/submit', async (req, res) => {
-  const testId = req.params.id;
+  const testId = Number(req.params.id);
+  if (Number.isNaN(testId)) return res.status(400).json({ error: 'invalid test id' });
   const userAnswers = Array.isArray(req.body.answers) ? req.body.answers : [];
 
   try {
@@ -161,4 +185,9 @@ app.post('/api/tests/:id/submit', async (req, res) => {
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`OGE backend listening on port ${port}`);
+});
+
+// Health endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
