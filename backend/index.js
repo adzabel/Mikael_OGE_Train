@@ -29,7 +29,8 @@ app.get('/api/tests/:id', async (req, res) => {
   if (Number.isNaN(testId)) return res.status(400).json({ error: 'invalid test id' });
 
   try {
-    const tRes = await pool.query('SELECT id_test, title, description FROM tests WHERE id_test = $1 LIMIT 1', [testId]);
+    // Используем поля из вашей схемы: `id_test`, `name_test`, `type_test`, `difficulty_test`
+    const tRes = await pool.query('SELECT id_test, name_test, type_test, difficulty_test FROM tests WHERE id_test = $1 LIMIT 1', [testId]);
     if (!tRes.rows || tRes.rows.length === 0) return res.status(404).json({ error: 'test not found' });
     res.json(tRes.rows[0]);
   } catch (err) {
@@ -57,23 +58,31 @@ app.get('/api/tests/:id/questions', async (req, res) => {
       const opts = optRes.rows;
       const answers = opts.map(o => o.variant_text);
 
-      // Вычисляем correct поле аналогично прежней логике
+      // В БД у вас типа вопросов выглядят как 'single_choice' / 'multiple_choice' / 'text'.
+      // Нормализуем их для фронтенда в single/multiple/text
+      const rawType = (q.question_type || '').toString().toLowerCase();
+      let normalizedType = rawType;
+      if (rawType.includes('single')) normalizedType = 'single';
+      else if (rawType.includes('multiple')) normalizedType = 'multiple';
+      else if (rawType.includes('text')) normalizedType = 'text';
+
+      // helper: распознаём метку правильного варианта, избегая совпадения с 'not_correct'
+      const isCorrectFlag = (flag) => {
+        if (flag === null || typeof flag === 'undefined') return false;
+        const f = String(flag).trim().toLowerCase();
+        return f === 'correct' || f === '1' || f === 'true';
+      };
+
       let correct = null;
-      if (q.question_type === 'single') {
-        const idx = opts.findIndex(o => {
-          const f = (o.option_flag || '').toString().toLowerCase();
-          return f === '1' || f === 'true' || f === 'correct';
-        });
-        correct = idx >= 0 ? idx : 0;
-      } else if (q.question_type === 'multiple') {
+      if (normalizedType === 'single') {
+        const idx = opts.findIndex(o => isCorrectFlag(o.option_flag));
+        correct = idx >= 0 ? idx : null;
+      } else if (normalizedType === 'multiple') {
         const arr = [];
-        opts.forEach((o, i) => {
-          const f = (o.option_flag || '').toString().toLowerCase();
-          if (f === '1' || f === 'true' || f === 'correct') arr.push(i);
-        });
+        opts.forEach((o, i) => { if (isCorrectFlag(o.option_flag)) arr.push(i); });
         correct = arr;
-      } else if (q.question_type === 'text') {
-        const o = opts.find(o => (o.option_flag || '').toString().toLowerCase() === 'correct');
+      } else if (normalizedType === 'text') {
+        const o = opts.find(o => isCorrectFlag(o.option_flag));
         correct = o ? o.variant_text : '';
       }
 
@@ -81,7 +90,7 @@ app.get('/api/tests/:id/questions', async (req, res) => {
         questions_id: q.questions_id,
         questions_test_id: q.questions_test_id,
         question_text: q.question_text,
-        question_type: q.question_type,
+        question_type: normalizedType,
         answers,
         correct,
         explanation: ''
