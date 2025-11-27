@@ -16,45 +16,54 @@ if (connectionString) {
   // Если используется строка подключения (например, Neon), включим SSL
   pool = new Pool({
     connectionString,
-    ssl: {
-      rejectUnauthorized: false
+    const out = [];
+    // helper to detect correct flag (avoid matching 'not_correct')
+    const isCorrectFlag = (flag) => {
+      if (!flag && flag !== 0) return false;
+      const f = String(flag).trim().toLowerCase();
+      return f === '1' || f === 'true' || f === 'correct';
+    };
+
+    for (const q of questions) {
+      const optRes = await pool.query(
+        'SELECT option_id, questions_id, variant_text, option_flag FROM options WHERE questions_id = $1 ORDER BY option_id',
+        [q.questions_id]
+      );
+      const opts = optRes.rows;
+      const answers = opts.map(o => o.variant_text);
+
+      // Normalize question type for frontend: single_choice -> single, multiple_choice -> multiple
+      let normalizedType = (q.question_type || '').toString().toLowerCase();
+      if (normalizedType.includes('single')) normalizedType = 'single';
+      else if (normalizedType.includes('multiple')) normalizedType = 'multiple';
+      else if (normalizedType.includes('text')) normalizedType = 'text';
+
+      // Compute correct answer(s) based on option_flag values (exact match to 'correct' or '1'/'true')
+      let correct = null;
+      if (normalizedType === 'single') {
+        const idx = opts.findIndex(o => isCorrectFlag(o.option_flag));
+        correct = idx >= 0 ? idx : null;
+      } else if (normalizedType === 'multiple') {
+        const arr = [];
+        opts.forEach((o, i) => {
+          if (isCorrectFlag(o.option_flag)) arr.push(i);
+        });
+        correct = arr;
+      } else if (normalizedType === 'text') {
+        const o = opts.find(o => isCorrectFlag(o.option_flag));
+        correct = o ? o.variant_text : '';
+      }
+
+      out.push({
+        questions_id: q.questions_id,
+        questions_test_id: q.questions_test_id,
+        question_text: q.question_text,
+        question_type: normalizedType,
+        answers,
+        correct,
+        explanation: ''
+      });
     }
-  });
-  console.log('Using connection string from NEON_DATABASE_URL/DATABASE_URL');
-} else {
-  pool = new Pool({
-    host: process.env.PGHOST || 'localhost',
-    port: process.env.PGPORT ? parseInt(process.env.PGPORT) : 5432,
-    user: process.env.PGUSER || 'postgres',
-    password: process.env.PGPASSWORD || '',
-    database: process.env.PGDATABASE || 'oge'
-  });
-  console.log('Using individual PG_* environment variables for DB connection');
-}
-
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle Postgres client', err);
-});
-
-// GET /api/tests - list tests
-app.get('/api/tests', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT id_test, name_test, type_test, difficulty_test FROM tests ORDER BY id_test');
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'database error' });
-  }
-});
-
-// GET /api/tests/:id - вернуть информацию по конкретному тесту
-app.get('/api/tests/:id', async (req, res) => {
-  const testId = Number(req.params.id);
-  if (Number.isNaN(testId)) return res.status(400).json({ error: 'invalid test id' });
-
-  try {
-    const { rows } = await pool.query('SELECT id_test, name_test, type_test, difficulty_test FROM tests WHERE id_test = $1 LIMIT 1', [testId]);
-    if (!rows || rows.length === 0) return res.status(404).json({ error: 'test not found' });
     res.json(rows[0]);
   } catch (err) {
     console.error(err);
