@@ -7,6 +7,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Добавим заголовок версии сервиса, чтобы можно было отличать инстансы
+const serviceVersion = process.env.SERVICE_VERSION || new Date().toISOString();
+app.use((req, res, next) => {
+  res.setHeader('X-Service-Version', serviceVersion);
+  next();
+});
+
 // Поддерживаем несколько вариантов конфигурации подключения:
 // 1) Строка подключения в NEON_DATABASE_URL (Neon) или DATABASE_URL
 // 2) Классические переменные PGHOST/PGUSER/PGPASSWORD/PGDATABASE
@@ -33,6 +40,17 @@ app.get('/api/tests/:id', async (req, res) => {
     const tRes = await pool.query('SELECT id_test, name_test, type_test, difficulty_test FROM tests WHERE id_test = $1 LIMIT 1', [testId]);
     if (!tRes.rows || tRes.rows.length === 0) return res.status(404).json({ error: 'test not found' });
     res.json(tRes.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'database error' });
+  }
+});
+
+// GET /api/tests - список тестов (корневой список)
+app.get('/api/tests', async (req, res) => {
+  try {
+    const tRes = await pool.query('SELECT id_test, name_test, type_test, difficulty_test FROM tests ORDER BY id_test');
+    res.json(tRes.rows || []);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'database error' });
@@ -188,12 +206,13 @@ app.post('/api/tests/:id/submit', async (req, res) => {
   }
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`OGE backend listening on port ${port}`);
-});
-
 // Health endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`OGE backend listening on port ${port}`);
+  console.log(`Service version: ${serviceVersion}`);
 });
