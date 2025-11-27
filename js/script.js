@@ -1,4 +1,6 @@
 // Современный JavaScript с использованием ES6+ возможностей
+const API_BASE = 'https://mikael-ogetrain-karinausadba.amvera.io';
+
 class OGEClass {
     constructor() {
         this.questions = [];
@@ -137,7 +139,7 @@ class OGEClass {
     async loadQuestions() {
         // Загружаем тесты и вопросы с backend (Postgres)
         try {
-            const testsResp = await fetch('/api/tests');
+            const testsResp = await fetch(`${API_BASE}/api/tests`);
             if (!testsResp.ok) throw new Error('Не удалось загрузить список тестов');
             const tests = await testsResp.json();
             this.tests = tests;
@@ -150,7 +152,7 @@ class OGEClass {
                 return;
             }
 
-            const qResp = await fetch(`/api/tests/${defaultTestId}/questions`);
+            const qResp = await fetch(`${API_BASE}/api/tests/${defaultTestId}/questions`);
             if (!qResp.ok) throw new Error('Не удалось загрузить вопросы');
             const questions = await qResp.json();
 

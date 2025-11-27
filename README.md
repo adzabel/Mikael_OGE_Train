@@ -21,11 +21,11 @@ docker run -e NEON_DATABASE_URL="postgresql://user:pass@host:5432/dbname" -p 800
 Примеры запросов:
 
 ```bash
-# Проверка здоровья
-curl http://localhost:8000/health
+# Проверка здоровья / тестового API
+curl https://mikael-ogetrain-karinausadba.amvera.io/api/tests
 
-# Получить элементы (требуется таблица items в базе или измените запрос в app/main.py)
-curl http://localhost:8000/items
+# Получить вопросы первого теста (замените `1` на нужный id)
+curl https://mikael-ogetrain-karinausadba.amvera.io/api/tests/1/questions
 ```
 
 Деплой на Amvera:
