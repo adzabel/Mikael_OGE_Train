@@ -16,55 +16,22 @@ if (connectionString) {
   // Если используется строка подключения (например, Neon), включим SSL
   pool = new Pool({
     connectionString,
-    const out = [];
-    // helper to detect correct flag (avoid matching 'not_correct')
-    const isCorrectFlag = (flag) => {
-      if (!flag && flag !== 0) return false;
-      const f = String(flag).trim().toLowerCase();
-      return f === '1' || f === 'true' || f === 'correct';
-    };
+    ssl: { rejectUnauthorized: false }
+  });
+} else {
+  // Обычная конфигурация через PGHOST/PGUSER/PGPASSWORD/PGDATABASE
+  pool = new Pool();
+}
 
-    for (const q of questions) {
-      const optRes = await pool.query(
-        'SELECT option_id, questions_id, variant_text, option_flag FROM options WHERE questions_id = $1 ORDER BY option_id',
-        [q.questions_id]
-      );
-      const opts = optRes.rows;
-      const answers = opts.map(o => o.variant_text);
+// GET /api/tests/:id - метаинформация о тесте
+app.get('/api/tests/:id', async (req, res) => {
+  const testId = Number(req.params.id);
+  if (Number.isNaN(testId)) return res.status(400).json({ error: 'invalid test id' });
 
-      // Normalize question type for frontend: single_choice -> single, multiple_choice -> multiple
-      let normalizedType = (q.question_type || '').toString().toLowerCase();
-      if (normalizedType.includes('single')) normalizedType = 'single';
-      else if (normalizedType.includes('multiple')) normalizedType = 'multiple';
-      else if (normalizedType.includes('text')) normalizedType = 'text';
-
-      // Compute correct answer(s) based on option_flag values (exact match to 'correct' or '1'/'true')
-      let correct = null;
-      if (normalizedType === 'single') {
-        const idx = opts.findIndex(o => isCorrectFlag(o.option_flag));
-        correct = idx >= 0 ? idx : null;
-      } else if (normalizedType === 'multiple') {
-        const arr = [];
-        opts.forEach((o, i) => {
-          if (isCorrectFlag(o.option_flag)) arr.push(i);
-        });
-        correct = arr;
-      } else if (normalizedType === 'text') {
-        const o = opts.find(o => isCorrectFlag(o.option_flag));
-        correct = o ? o.variant_text : '';
-      }
-
-      out.push({
-        questions_id: q.questions_id,
-        questions_test_id: q.questions_test_id,
-        question_text: q.question_text,
-        question_type: normalizedType,
-        answers,
-        correct,
-        explanation: ''
-      });
-    }
-    res.json(rows[0]);
+  try {
+    const tRes = await pool.query('SELECT id_test, title, description FROM tests WHERE id_test = $1 LIMIT 1', [testId]);
+    if (!tRes.rows || tRes.rows.length === 0) return res.status(404).json({ error: 'test not found' });
+    res.json(tRes.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'database error' });
