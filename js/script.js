@@ -197,7 +197,13 @@ class OGEClass {
             this.questions = questions.map(q => ({
                 questions_id: q.questions_id,
                 question: q.question_text,
-                type: q.question_type,
+                type: (function(t){
+                    const s = (t||'').toString().toLowerCase();
+                    if (s.includes('single')) return 'single';
+                    if (s.includes('multiple')) return 'multiple';
+                    if (s.includes('text')) return 'text';
+                    return t;
+                })(q.question_type),
                 answers: q.answers || [],
                 correct: q.correct,
                 explanation: q.explanation || ''
@@ -221,7 +227,13 @@ class OGEClass {
             this.questions = questions.map(q => ({
                 questions_id: q.questions_id,
                 question: q.question_text,
-                type: q.question_type,
+                type: (function(t){
+                    const s = (t||'').toString().toLowerCase();
+                    if (s.includes('single')) return 'single';
+                    if (s.includes('multiple')) return 'multiple';
+                    if (s.includes('text')) return 'text';
+                    return t;
+                })(q.question_type),
                 answers: q.answers || [],
                 correct: q.correct,
                 explanation: q.explanation || ''
