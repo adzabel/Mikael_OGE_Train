@@ -2,8 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -13,16 +13,14 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    name: Build (if needed) and Deploy
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (optional, used if a build script exists)
+      - name: Setup Node.js (optional)
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
 
       - name: Install & build (if `package.json` present)
         run: |
@@ -38,7 +36,6 @@ jobs:
           set -e
           rm -rf artifact
           mkdir artifact
-          # prefer common build output dirs
           if [ -d build ]; then
             cp -r build/* artifact/
           elif [ -d dist ]; then
@@ -46,32 +43,25 @@ jobs:
           elif [ -d public ]; then
             cp -r public/* artifact/
           else
-            # Copy repository root (exclude backend, .github, node_modules, and git metadata)
             rsync -a --exclude='backend' --exclude='.github' --exclude='node_modules' --exclude='.git' --exclude='venv' ./ artifact/
           fi
 
-      - name: Debug: show environment info
+      - name: Debug: env and runner info
         run: |
           echo "GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
           echo "GITHUB_REF=$GITHUB_REF"
           echo "GITHUB_SHA=$GITHUB_SHA"
-          echo "Runner: $(uname -a)"
+          uname -a
 
       - name: Debug: list artifact contents
         run: |
-          echo "Artifact exists?"; [ -d artifact ] && echo yes || echo no
-          echo "Artifact size:"; du -sh artifact || true
-          echo "Files:"; ls -la artifact || true
-          echo "Total files count:"; find artifact -type f | wc -l || true
-
-      - name: Fail early if artifact empty
-        if: always()
-        run: |
-          cnt=$(find artifact -type f | wc -l)
-          echo "Artifact file count: $cnt"
-          if [ "$cnt" -eq 0 ]; then
-            echo "No files to publish — aborting" >&2
-            exit 2
+          if [ -d artifact ]; then
+            du -sh artifact || true
+            ls -la artifact || true
+            find artifact -type f | wc -l || true
+          else
+            echo "artifact directory missing"
+            exit 1
           fi
 
       - name: Configure Pages
@@ -84,145 +74,3 @@ jobs:
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v1
-
-# Notes:
-# - This workflow triggers on pushes to `main`.
-# - It will run `npm ci` and `npm run build --if-present` if a `package.json` exists.
-# - The job prefers common build output folders (`build`, `dist`, `public`). If none exist,
-#   it publishes the repository root (excluding `backend`, `.github`, `node_modules`).
-# - The workflow uses the built-in `GITHUB_TOKEN`, so no extra secrets are required.name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches:
-      - main
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    name: Build (if needed) and Deploy
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js (optional, used if a build script exists)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install & build (if `package.json` present)
-        run: |
-          if [ -f package.json ]; then
-            npm ci
-            npm run build --if-present
-          else
-            echo "No package.json found — skipping Node build"
-          fi
-
-      - name: Prepare artifact directory
-        run: |
-          set -e
-          rm -rf artifact
-          mkdir artifact
-          # prefer common build output dirs
-          if [ -d build ]; then
-            cp -r build/* artifact/
-          elif [ -d dist ]; then
-            cp -r dist/* artifact/
-          elif [ -d public ]; then
-            cp -r public/* artifact/
-          else
-            # Copy repository root (exclude backend, .github, node_modules, and git metadata)
-            rsync -a --exclude='backend' --exclude='.github' --exclude='node_modules' --exclude='.git' --exclude='venv' ./ artifact/
-          fi
-
-      - name: Debug: show environment info
-        run: |
-          echo "GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
-          echo "GITHUB_REF=$GITHUB_REF"
-          echo "GITHUB_SHA=$GITHUB_SHA"
-          echo "Runner: $(uname -a)"
-
-      name: Deploy to GitHub Pages
-
-      on:
-        push:
-          branches: [ main ]
-
-      permissions:
-        contents: read
-        pages: write
-        id-token: write
-
-      jobs:
-        build-and-deploy:
-          runs-on: ubuntu-latest
-          steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-
-            - name: Setup Node.js (optional)
-              uses: actions/setup-node@v4
-              with:
-                node-version: '18'
-
-            - name: Install & build (if `package.json` present)
-              run: |
-                if [ -f package.json ]; then
-                  npm ci
-                  npm run build --if-present
-                else
-                  echo "No package.json found — skipping Node build"
-                fi
-
-            - name: Prepare artifact directory
-              run: |
-                set -e
-                rm -rf artifact
-                mkdir artifact
-                if [ -d build ]; then
-                  cp -r build/* artifact/
-                elif [ -d dist ]; then
-                  cp -r dist/* artifact/
-                elif [ -d public ]; then
-                  cp -r public/* artifact/
-                else
-                  rsync -a --exclude='backend' --exclude='.github' --exclude='node_modules' --exclude='.git' --exclude='venv' ./ artifact/
-                fi
-
-            - name: Debug: env and runner info
-              run: |
-                echo "GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
-                echo "GITHUB_REF=$GITHUB_REF"
-                echo "GITHUB_SHA=$GITHUB_SHA"
-                uname -a
-
-            - name: Debug: list artifact contents
-              run: |
-                if [ -d artifact ]; then
-                  du -sh artifact || true
-                  ls -la artifact || true
-                  find artifact -type f | wc -l || true
-                else
-                  echo "artifact directory missing"
-                  exit 1
-                fi
-
-            - name: Configure Pages
-              uses: actions/configure-pages@v3
-
-            - name: Upload artifact for GitHub Pages
-              uses: actions/upload-pages-artifact@v1
-              with:
-                path: artifact
-
-            - name: Deploy to GitHub Pages
-              uses: actions/deploy-pages@v1
-
-      # Notes: add debug steps to inspect artifact before upload
