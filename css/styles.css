@@ -14,6 +14,26 @@
     --transition: all 0.3s ease;
     --shadow: 0 8px 25px rgba(0,0,0,0.1);
     --shadow-hover: 0 12px 35px rgba(0,0,0,0.15);
+    /* Additional abstraction variables */
+    --radius-sm: 10px;
+    --radius-md: 12px;
+    --surface-bg: #ffffff;
+    --card-bg: #fefcf8;
+    --surface-border: rgba(232,216,195,0.5);
+    --shadow-sm: 0 4px 15px rgba(0,0,0,0.05);
+    --shadow-md: 0 8px 25px rgba(0,0,0,0.1);
+    --primary-soft: rgba(74,124,89,0.05);
+    --primary-soft-strong: rgba(74,124,89,0.10);
+    --primary-soft-weak: rgba(74,124,89,0.03);
+    --bg-grad-start: #f9f3e9;
+    --bg-grad-end: #f0e6d6;
+    --option-bg: #f9f3e9;
+    --option-hover-bg: #f0e6d6;
+    --input-focus-shadow: 0 0 0 3px rgba(74,124,89,0.1);
+    --result-correct-bg: #e8f5e9;
+    --result-incorrect-bg: #ffebee;
+    --explanation-bg: #e3f2fd;
+    --radius-xs: 8px;
 }
 
 * {
@@ -31,12 +51,24 @@ body {
     font-family: 'Roboto', 'Open Sans', sans-serif;
     line-height: 1.7;
     color: var(--text-color);
-    background: linear-gradient(135deg, #f9f3e9 0%, #f0e6d6 100%);
+    background: linear-gradient(135deg, var(--bg-grad-start) 0%, var(--bg-grad-end) 100%);
     display: flex;
     flex-direction: column;
     min-height: 100vh;
     overflow-x: hidden;
 }
+
+/* Surface utility to deduplicate card/panel styles */
+.surface{
+    background: var(--surface-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    border: 1px solid var(--surface-border);
+}
+
+.surface--card{ background: var(--card-bg); }
+.surface--elevated{ box-shadow: var(--shadow-md); }
 
 .container {
     flex: 1;
@@ -65,13 +97,17 @@ header::after {
     background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
 }
 
-h1 {
+/* Headings use Open Sans consistently */
+h1,h2,h3,h4, .section-title, .card h3, .feature-card h4, .theory-section h3, .detail-card h3 {
+    font-family: 'Open Sans', sans-serif;
     color: var(--primary-color);
+}
+
+h1 {
     font-size: 3rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
     letter-spacing: -0.5px;
-    font-family: 'Open Sans', sans-serif;
 }
 
 .subtitle {
@@ -89,9 +125,9 @@ h1 {
 
 .navigation-panel {
     flex: 0 0 280px;
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
+    background: var(--surface-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
     padding: 2rem;
     display: flex;
     flex-direction: column;
@@ -100,9 +136,9 @@ h1 {
 
 .content-area {
     flex: 1;
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
+    background: var(--surface-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
     padding: 2.5rem;
     display: flex;
     flex-direction: column;
@@ -114,7 +150,7 @@ h1 {
     color: var(--text-color);
     border: none;
     padding: 1.2rem 1.5rem;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 1.1rem;
     font-weight: 500;
@@ -125,7 +161,6 @@ h1 {
     gap: 12px;
     position: relative;
     overflow: hidden;
-    font-family: 'Open Sans', sans-serif;
 }
 
 .nav-btn::before {
@@ -145,12 +180,12 @@ h1 {
 }
 
 .nav-btn:hover {
-    background: rgba(74, 124, 89, 0.05);
+    background: var(--primary-soft);
     transform: translateX(5px);
 }
 
 .nav-btn.active {
-    background: rgba(74, 124, 89, 0.1);
+    background: var(--primary-soft-strong);
     color: var(--primary-color);
     font-weight: 600;
 }
@@ -176,12 +211,12 @@ h1 {
 }
 
 .card {
-    background: #fefcf8;
-    border-radius: 12px;
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
     padding: 2rem;
     margin-bottom: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-    border: 1px solid rgba(232, 216, 195, 0.5);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--surface-border);
 }
 
 .card h3 {
@@ -263,14 +298,14 @@ h1 {
 .progress-bar {
     height: 12px;
     background: var(--secondary-color);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
 }
 
 .progress-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     transition: width 0.5s ease;
     width: 0%;
 }
@@ -299,21 +334,21 @@ h1 {
     display: flex;
     align-items: center;
     padding: 1.2rem 1.5rem;
-    background: #f9f3e9;
-    border-radius: 10px;
+    background: var(--option-bg);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: var(--transition);
     border: 2px solid transparent;
 }
 
 .option:hover {
-    background: #f0e6d6;
+    background: var(--option-hover-bg);
     transform: translateY(-2px);
 }
 
 .option.selected {
     border-color: var(--primary-color);
-    background: rgba(74, 124, 89, 0.05);
+    background: var(--primary-soft);
 }
 
 .option input {
@@ -325,7 +360,7 @@ h1 {
     padding: 1.2rem;
     width: 100%;
     border: 2px solid var(--secondary-color);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     font-size: 1.1rem;
     font-family: 'Roboto', sans-serif;
     transition: var(--transition);
@@ -334,7 +369,7 @@ h1 {
 .text-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.1);
+    box-shadow: var(--input-focus-shadow);
 }
 
 .result-container {
@@ -343,7 +378,7 @@ h1 {
 
 .result {
     padding: 1.5rem;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
     margin-bottom: 1rem;
     display: flex;
@@ -352,22 +387,22 @@ h1 {
 }
 
 .result.correct {
-    background: #e8f5e9;
+    background: var(--result-correct-bg);
     color: var(--correct-color);
-    border-left: 5px solid #4caf50;
+    border-left: 5px solid var(--correct-color);
 }
 
 .result.incorrect {
-    background: #ffebee;
+    background: var(--result-incorrect-bg);
     color: var(--incorrect-color);
-    border-left: 5px solid #f44336;
+    border-left: 5px solid var(--incorrect-color);
 }
 
 .explanation {
     padding: 1.5rem;
-    background: #e3f2fd;
-    border-radius: 10px;
-    border-left: 5px solid #2196f3;
+    background: var(--explanation-bg);
+    border-radius: var(--radius-sm);
+    border-left: 5px solid var(--primary-color);
 }
 
 .subsection-nav {
@@ -388,22 +423,21 @@ h1 {
     color: var(--text-light);
     border: none;
     padding: 0.8rem 1rem;
-    border-radius: 8px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
     font-size: 1rem;
     font-weight: 400;
     transition: var(--transition);
     text-align: left;
-    font-family: 'Roboto', sans-serif;
 }
 
 .subsection-btn:hover {
-    background: rgba(74, 124, 89, 0.05);
+    background: var(--primary-soft);
     color: var(--text-color);
 }
 
 .subsection-btn.active {
-    background: rgba(74, 124, 89, 0.1);
+    background: var(--primary-soft-strong);
     color: var(--primary-color);
     font-weight: 500;
 }
@@ -445,10 +479,10 @@ h1 {
 }
 
 .feature-card {
-    background: white;
-    border-radius: 12px;
+    background: var(--surface-bg);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-sm);
     transition: var(--transition);
     text-align: center;
     border: 2px solid transparent;
@@ -458,7 +492,7 @@ h1 {
     transform: translateY(-5px);
     box-shadow: var(--shadow-hover);
     border-color: var(--primary-color);
-    background: rgba(74, 124, 89, 0.03);
+    background: var(--primary-soft-weak);
 }
 
 .feature-icon {
@@ -547,12 +581,12 @@ h1 {
 }
 
 .stat-card {
-    background: white;
-    border-radius: 12px;
+    background: var(--surface-bg);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
     text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    border: 1px solid rgba(232, 216, 195, 0.5);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--surface-border);
 }
 
 .stat-value {
@@ -575,11 +609,11 @@ h1 {
 }
 
 .detail-card {
-    background: white;
-    border-radius: 12px;
+    background: var(--surface-bg);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    border: 1px solid rgba(232, 216, 195, 0.5);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--surface-border);
 }
 
 .detail-card h3 {

@@ -1,0 +1,164 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const pool = new Pool({
+  host: process.env.PGHOST || 'localhost',
+  port: process.env.PGPORT ? parseInt(process.env.PGPORT) : 5432,
+  user: process.env.PGUSER || 'postgres',
+  password: process.env.PGPASSWORD || '',
+  database: process.env.PGDATABASE || 'oge'
+});
+
+// GET /api/tests - list tests
+app.get('/api/tests', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT id_test, name_test, type_test, difficulty_test FROM tests ORDER BY id_test');
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'database error' });
+  }
+});
+
+// GET /api/tests/:id/questions - list questions with options for a test
+app.get('/api/tests/:id/questions', async (req, res) => {
+  const testId = req.params.id;
+  try {
+    const qRes = await pool.query('SELECT questions_id, questions_test_id, question_text, question_type FROM questions WHERE questions_test_id = $1 ORDER BY questions_id', [testId]);
+    const questions = qRes.rows;
+
+    const out = [];
+    for (const q of questions) {
+      const optRes = await pool.query('SELECT option_id, questions_id, variant_text, option_flag FROM options WHERE questions_id = $1 ORDER BY option_id', [q.questions_id]);
+      const opts = optRes.rows;
+      const answers = opts.map(o => o.variant_text);
+
+      // Вычисляем correct поле аналогично прежней логике
+      let correct = null;
+      if (q.question_type === 'single') {
+        const idx = opts.findIndex(o => {
+          const f = (o.option_flag || '').toString().toLowerCase();
+          return f === '1' || f === 'true' || f === 'correct';
+        });
+        correct = idx >= 0 ? idx : 0;
+      } else if (q.question_type === 'multiple') {
+        const arr = [];
+        opts.forEach((o, i) => {
+          const f = (o.option_flag || '').toString().toLowerCase();
+          if (f === '1' || f === 'true' || f === 'correct') arr.push(i);
+        });
+        correct = arr;
+      } else if (q.question_type === 'text') {
+        const o = opts.find(o => (o.option_flag || '').toString().toLowerCase() === 'correct');
+        correct = o ? o.variant_text : '';
+      }
+
+      out.push({
+        questions_id: q.questions_id,
+        questions_test_id: q.questions_test_id,
+        question_text: q.question_text,
+        question_type: q.question_type,
+        answers,
+        correct,
+        explanation: ''
+      });
+    }
+
+    res.json(out);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'database error' });
+  }
+});
+
+// POST /api/tests/:id/submit - оценить ответы пользователя
+// Ожидаемый формат body: { answers: [ { question_id: <num>, answer: <index|[indexes]|text> } ] }
+app.post('/api/tests/:id/submit', async (req, res) => {
+  const testId = req.params.id;
+  const userAnswers = Array.isArray(req.body.answers) ? req.body.answers : [];
+
+  try {
+    // Получаем все вопросы теста
+    const qRes = await pool.query('SELECT questions_id, question_text, question_type FROM questions WHERE questions_test_id = $1', [testId]);
+    const questions = qRes.rows;
+
+    let score = 0;
+    const details = [];
+
+    for (const q of questions) {
+      // Получаем варианты
+      const optRes = await pool.query('SELECT option_id, variant_text, option_flag FROM options WHERE questions_id = $1 ORDER BY option_id', [q.questions_id]);
+      const opts = optRes.rows;
+
+      // Определим правильный ответ в зависимости от типа
+      let correct = null;
+      if (q.question_type === 'single') {
+        const idx = opts.findIndex(o => {
+          const f = (o.option_flag || '').toString().toLowerCase();
+          return f === '1' || f === 'true' || f === 'correct';
+        });
+        correct = idx >= 0 ? idx : 0;
+      } else if (q.question_type === 'multiple') {
+        const arr = [];
+        opts.forEach((o, i) => {
+          const f = (o.option_flag || '').toString().toLowerCase();
+          if (f === '1' || f === 'true' || f === 'correct') arr.push(i);
+        });
+        correct = arr;
+      } else if (q.question_type === 'text') {
+        const o = opts.find(o => (o.option_flag || '').toString().toLowerCase() === 'correct');
+        correct = o ? o.variant_text : '';
+      }
+
+      // Находим ответ пользователя для этого вопроса
+      const ua = userAnswers.find(a => String(a.question_id) === String(q.questions_id));
+      let userAnswer = typeof ua !== 'undefined' ? ua.answer : null;
+
+      // Оценка
+      let isCorrect = false;
+      if (q.question_type === 'single') {
+        isCorrect = Number(userAnswer) === Number(correct);
+      } else if (q.question_type === 'multiple') {
+        const uaArr = Array.isArray(userAnswer) ? userAnswer.map(Number) : [];
+        // Сравнение множественного набора
+        const sortedA = [...uaArr].sort();
+        const sortedB = [...correct].sort();
+        isCorrect = sortedA.length === sortedB.length && sortedA.every((v, i) => v === sortedB[i]);
+      } else if (q.question_type === 'text') {
+        const a = (userAnswer || '').toString().trim().toLowerCase();
+        const c = (correct || '').toString().trim().toLowerCase();
+        isCorrect = a === c && a !== '';
+      }
+
+      if (isCorrect) score++;
+
+      details.push({
+        question_id: q.questions_id,
+        question: q.question_text,
+        type: q.question_type,
+        correct,
+        userAnswer,
+        isCorrect
+      });
+    }
+
+    const total = questions.length;
+    const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
+
+    res.json({ score, total, percentage, details });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'database error' });
+  }
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`OGE backend listening on port ${port}`);
+});

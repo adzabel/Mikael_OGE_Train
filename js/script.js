@@ -13,9 +13,9 @@ class OGEClass {
         this.init();
     }
     
-    init() {
+    async init() {
         this.setupEventListeners();
-        this.loadQuestions();
+        await this.loadQuestions();
         this.updateQuestionCount();
         this.updateProgressBar();
         this.loadTestHistory();
@@ -134,10 +134,42 @@ class OGEClass {
         }
     }
     
-    loadQuestions() {
-        // Загрузка вопросов (пока пустой массив)
-        this.questions = [];
-        this.filteredQuestions = [...this.questions];
+    async loadQuestions() {
+        // Загружаем тесты и вопросы с backend (Postgres)
+        try {
+            const testsResp = await fetch('/api/tests');
+            if (!testsResp.ok) throw new Error('Не удалось загрузить список тестов');
+            const tests = await testsResp.json();
+            this.tests = tests;
+
+            // Выбираем первый тест по умолчанию
+            const defaultTestId = tests.length > 0 ? tests[0].id_test : null;
+            if (!defaultTestId) {
+                this.questions = [];
+                this.filteredQuestions = [];
+                return;
+            }
+
+            const qResp = await fetch(`/api/tests/${defaultTestId}/questions`);
+            if (!qResp.ok) throw new Error('Не удалось загрузить вопросы');
+            const questions = await qResp.json();
+
+            // Приводим к формату, ожидаемому фронтендом
+            this.questions = questions.map(q => ({
+                questions_id: q.questions_id,
+                question: q.question_text,
+                type: q.question_type,
+                answers: q.answers || [],
+                correct: q.correct,
+                explanation: q.explanation || ''
+            }));
+
+            this.filteredQuestions = [...this.questions];
+        } catch (err) {
+            console.error('loadQuestions error:', err);
+            this.questions = [];
+            this.filteredQuestions = [];
+        }
     }
     
     loadTestHistory() {
