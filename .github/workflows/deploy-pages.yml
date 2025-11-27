@@ -67,7 +67,10 @@ jobs:
       - name: Deploy to GitHub Pages via gh-pages branch
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Use a Personal Access Token (PAT) stored in repository secret `GH_PAGES_PAT`.
+          # Create a PAT with `repo` (or fine-grained write access to this repo) and add it to
+          # Settings → Secrets → Actions as `GH_PAGES_PAT`.
+          personal_token: ${{ secrets.GH_PAGES_PAT }}
           publish_dir: ./artifact
           publish_branch: gh-pages
           allow_empty_commit: false
