@@ -1,13 +1,18 @@
-FROM python:3.11-slim
+FROM node:20-slim
 
-ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Копируем только backend для уменьшения образа
+COPY backend/package.json backend/package-lock.json* ./backend/
+WORKDIR /app/backend
+RUN npm install --production
 
-COPY . .
+# Копируем весь backend-приложение
+COPY backend/ ./
 
+# Экспортируем порт, совпадающий с amvera.yml (8000)
+ENV PORT=8000
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Запускаем node-приложение
+CMD ["npm", "start"]
