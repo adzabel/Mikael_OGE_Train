@@ -115,12 +115,9 @@ class OGEClass {
                     this.filterQuestions();
                     this.updateQuestionCount();
 
-                    // Если тест уже начат, перезапускаем
-                    if (this.isTestStarted()) {
-                        this.restartTest();
-                    } else {
-                        this.updateQuestionDisplay();
-                    }
+                    // Автозапускаем тест для раздела «Грамматика»
+                    // чтобы пользователь сразу увидел вопрос
+                    this.startTest();
                 } catch (err) {
                     console.error('Ошибка при загрузке теста grammar:', err);
                     this.questions = [];
