@@ -9,7 +9,7 @@
   - `assets/js/script.js`: логика фронтенда
 - `backend/`: Node.js API для тестов/вопросов (Express + Postgres)
 - `Dockerfile`: контейнер для Node.js backend (порт `8000`)
-- `app/main.py`: экспериментальный FastAPI-пример (не используется в текущем деплое)
+- `backend/fastapi/main.py`: экспериментальный FastAPI-пример (не используется в текущем деплое)
 - `requirements.txt`: зависимости для FastAPI-примера
 
 **Backend (Node.js, Express)**
