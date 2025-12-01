@@ -205,7 +205,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8103;
 app.listen(port, () => {
   console.log(`OGE backend listening on port ${port}`);
 });
