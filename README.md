@@ -8,9 +8,7 @@
   - `assets/css/styles.css`: стили
   - `assets/js/script.js`: логика фронтенда
 - `backend/`: Node.js API для тестов/вопросов (Express + Postgres)
-- `Dockerfile`: контейнер для Node.js backend (порт `8000`)
-- `backend/fastapi/main.py`: экспериментальный FastAPI-пример (не используется в текущем деплое)
-- `requirements.txt`: зависимости для FastAPI-примера
+
 
 **Backend (Node.js, Express)**
 - Переменные окружения: `NEON_DATABASE_URL` или `DATABASE_URL` (строка подключения), либо стандартные `PG*`.
@@ -52,6 +50,3 @@ curl https://mikael-ogetrain-karinausadba.amvera.io/api/tests/1/questions
 **Кастомизация**
 - Хотите публиковать из другой папки? Обновите шаг `Prepare artifact directory` в workflow.
 - Нужен CNAME? Добавьте файл `CNAME` в `frontend/public/`.
-
-**Примечания**
-- `app/main.py` (FastAPI) оставлен как пример и не участвует в текущем деплое. Если потребуется переключиться на FastAPI, добавлю соответствующий Dockerfile и workflow.
