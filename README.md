@@ -4,8 +4,7 @@
 
 **Структура**
 - `frontend/public/`: статический фронтенд (публикуется на GitHub Pages)
-  - `index.html`: редирект на основную страницу
-  - `iko.html`: основная страница приложения
+  - `index.html`: основная страница приложения (объединённая, без редиректов)
   - `assets/css/styles.css`: стили
   - `assets/js/script.js`: логика фронтенда
 - `backend/`: Node.js API для тестов/вопросов (Express + Postgres)
