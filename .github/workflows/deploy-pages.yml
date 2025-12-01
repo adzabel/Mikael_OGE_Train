@@ -35,8 +35,11 @@ jobs:
         run: |
           set -e
           rm -rf artifact
-          mkdir artifact
-          if [ -d build ]; then
+          mkdir -p artifact
+          if [ -d frontend/public ]; then
+            echo "Publishing from frontend/public"
+            rsync -a frontend/public/ artifact/
+          elif [ -d build ]; then
             cp -r build/* artifact/
           elif [ -d dist ]; then
             cp -r dist/* artifact/
