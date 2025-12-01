@@ -1,5 +1,5 @@
 // Переиспользуем существующий код, только путь API остаётся прежним
-const API_BASE = 'https://mikael-ogetrain-karinausadba.amvera.io';
+const API_BASE = 'https://mikael-ogetrain.fantom-api.ru';
 
 // Весь исходный функционал перенесён из js/script.js
 // Чтобы избежать дублирования, импортируем его содержимое здесь.
