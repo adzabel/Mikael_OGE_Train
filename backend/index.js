@@ -2,37 +2,117 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const client = require('prom-client');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ---------------------------
+// Prometheus metrics setup
+// ---------------------------
+
+// Регистр метрик
+const register = new client.Registry();
+
+// Стандартные метрики Node.js / процесса
+client.collectDefaultMetrics({ register });
+
+// Счётчик HTTP-запросов по методам/роутам/статусам
+const httpRequestsTotal = new client.Counter({
+  name: 'mikael_ogetrain_http_requests_total',
+  help: 'Total HTTP requests to Mikael OGE Train backend',
+  labelNames: ['method', 'route', 'status_code'],
+});
+
+register.registerMetric(httpRequestsTotal);
+
+// Middleware для инкремента счётчика запросов
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    // Чтобы не засорять метрику частыми scrape-запросами, не считаем /metrics
+    if (req.path === '/metrics') return;
+
+    httpRequestsTotal.inc({
+      method: req.method,
+      route: req.route ? req.route.path : req.path,
+      status_code: res.statusCode,
+    });
+  });
+  next();
+});
+
+// Endpoint для Prometheus
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (err) {
+    res.status(500).end(err.message);
+  }
+});
+
+// ---------------------------
+// DB connection setup
+// ---------------------------
 
 // Поддерживаем несколько вариантов конфигурации подключения:
 // 1) Строка подключения в NEON_DATABASE_URL (Neon) или DATABASE_URL
 // 2) Классические переменные PGHOST/PGUSER/PGPASSWORD/PGDATABASE
 let pool;
-const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || null;
+const connectionString =
+  process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || null;
+
 if (connectionString) {
   // Если используется строка подключения (например, Neon), включим SSL
   pool = new Pool({
     connectionString,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
   });
 } else {
   // Обычная конфигурация через PGHOST/PGUSER/PGPASSWORD/PGDATABASE
   pool = new Pool();
 }
 
+// ---------------------------
+// Helpers
+// ---------------------------
+
+// Нормализация типа вопроса для фронтенда
+function normalizeQuestionType(rawType) {
+  const t = (rawType || '').toString().toLowerCase();
+  if (t.includes('single')) return 'single';
+  if (t.includes('multiple')) return 'multiple';
+  if (t.includes('text')) return 'text';
+  return t || 'single';
+}
+
+// Флаг "правильного варианта"
+function isCorrectFlag(flag) {
+  if (flag === null || typeof flag === 'undefined') return false;
+  const f = String(flag).trim().toLowerCase();
+  return f === 'correct' || f === '1' || f === 'true';
+}
+
+// ---------------------------
+// API endpoints
+// ---------------------------
+
 // GET /api/tests/:id - метаинформация о тесте
 app.get('/api/tests/:id', async (req, res) => {
   const testId = Number(req.params.id);
-  if (Number.isNaN(testId)) return res.status(400).json({ error: 'invalid test id' });
+  if (Number.isNaN(testId)) {
+    return res.status(400).json({ error: 'invalid test id' });
+  }
 
   try {
-    // Используем поля из вашей схемы: `id_test`, `name_test`, `type_test`, `difficulty_test`
-    const tRes = await pool.query('SELECT id_test, name_test, type_test, difficulty_test FROM tests WHERE id_test = $1 LIMIT 1', [testId]);
-    if (!tRes.rows || tRes.rows.length === 0) return res.status(404).json({ error: 'test not found' });
+    const tRes = await pool.query(
+      'SELECT id_test, name_test, type_test, difficulty_test FROM tests WHERE id_test = $1 LIMIT 1',
+      [testId],
+    );
+    if (!tRes.rows || tRes.rows.length === 0) {
+      return res.status(404).json({ error: 'test not found' });
+    }
     res.json(tRes.rows[0]);
   } catch (err) {
     console.error(err);
@@ -40,10 +120,12 @@ app.get('/api/tests/:id', async (req, res) => {
   }
 });
 
-// GET /api/tests - список тестов (корневой список)
+// GET /api/tests - список тестов
 app.get('/api/tests', async (req, res) => {
   try {
-    const tRes = await pool.query('SELECT id_test, name_test, type_test, difficulty_test FROM tests ORDER BY id_test');
+    const tRes = await pool.query(
+      'SELECT id_test, name_test, type_test, difficulty_test FROM tests ORDER BY id_test',
+    );
     res.json(tRes.rows || []);
   } catch (err) {
     console.error(err);
@@ -51,50 +133,52 @@ app.get('/api/tests', async (req, res) => {
   }
 });
 
-// GET /api/tests/:id/questions - list questions with options for a test
+// GET /api/tests/:id/questions - список вопросов с вариантами
 app.get('/api/tests/:id/questions', async (req, res) => {
   const testId = Number(req.params.id);
-  if (Number.isNaN(testId)) return res.status(400).json({ error: 'invalid test id' });
+  if (Number.isNaN(testId)) {
+    return res.status(400).json({ error: 'invalid test id' });
+  }
 
   try {
     // Проверим, существует ли тест
-    const tRes = await pool.query('SELECT id_test FROM tests WHERE id_test = $1 LIMIT 1', [testId]);
-    if (!tRes.rows || tRes.rows.length === 0) return res.status(404).json({ error: 'test not found' });
+    const tRes = await pool.query(
+      'SELECT id_test FROM tests WHERE id_test = $1 LIMIT 1',
+      [testId],
+    );
+    if (!tRes.rows || tRes.rows.length === 0) {
+      return res.status(404).json({ error: 'test not found' });
+    }
 
-    const qRes = await pool.query('SELECT questions_id, questions_test_id, question_text, question_type FROM questions WHERE questions_test_id = $1 ORDER BY questions_id', [testId]);
+    const qRes = await pool.query(
+      'SELECT questions_id, questions_test_id, question_text, question_type FROM questions WHERE questions_test_id = $1 ORDER BY questions_id',
+      [testId],
+    );
     const questions = qRes.rows;
 
     const out = [];
     for (const q of questions) {
-      const optRes = await pool.query('SELECT option_id, questions_id, variant_text, option_flag FROM options WHERE questions_id = $1 ORDER BY option_id', [q.questions_id]);
+      const optRes = await pool.query(
+        'SELECT option_id, questions_id, variant_text, option_flag FROM options WHERE questions_id = $1 ORDER BY option_id',
+        [q.questions_id],
+      );
       const opts = optRes.rows;
-      const answers = opts.map(o => o.variant_text);
+      const answers = opts.map((o) => o.variant_text);
 
-      // В БД у вас типа вопросов выглядят как 'single_choice' / 'multiple_choice' / 'text'.
-      // Нормализуем их для фронтенда в single/multiple/text
-      const rawType = (q.question_type || '').toString().toLowerCase();
-      let normalizedType = rawType;
-      if (rawType.includes('single')) normalizedType = 'single';
-      else if (rawType.includes('multiple')) normalizedType = 'multiple';
-      else if (rawType.includes('text')) normalizedType = 'text';
-
-      // helper: распознаём метку правильного варианта, избегая совпадения с 'not_correct'
-      const isCorrectFlag = (flag) => {
-        if (flag === null || typeof flag === 'undefined') return false;
-        const f = String(flag).trim().toLowerCase();
-        return f === 'correct' || f === '1' || f === 'true';
-      };
+      const normalizedType = normalizeQuestionType(q.question_type);
 
       let correct = null;
       if (normalizedType === 'single') {
-        const idx = opts.findIndex(o => isCorrectFlag(o.option_flag));
+        const idx = opts.findIndex((o) => isCorrectFlag(o.option_flag));
         correct = idx >= 0 ? idx : null;
       } else if (normalizedType === 'multiple') {
         const arr = [];
-        opts.forEach((o, i) => { if (isCorrectFlag(o.option_flag)) arr.push(i); });
+        opts.forEach((o, i) => {
+          if (isCorrectFlag(o.option_flag)) arr.push(i);
+        });
         correct = arr;
       } else if (normalizedType === 'text') {
-        const o = opts.find(o => isCorrectFlag(o.option_flag));
+        const o = opts.find((o) => isCorrectFlag(o.option_flag));
         correct = o ? o.variant_text : '';
       }
 
@@ -105,12 +189,11 @@ app.get('/api/tests/:id/questions', async (req, res) => {
         question_type: normalizedType,
         answers,
         correct,
-        explanation: ''
+        explanation: '',
       });
     }
 
-    // Если вопросов нет — вернём пустой массив 200 (фронтенд может это обрабатывать),
-    // но тест уже существует (мы проверили выше).
+    // Если вопросов нет — вернём пустой массив (тест существует, вопросов пока нет)
     res.json(out);
   } catch (err) {
     console.error(err);
@@ -122,57 +205,68 @@ app.get('/api/tests/:id/questions', async (req, res) => {
 // Ожидаемый формат body: { answers: [ { question_id: <num>, answer: <index|[indexes]|text> } ] }
 app.post('/api/tests/:id/submit', async (req, res) => {
   const testId = Number(req.params.id);
-  if (Number.isNaN(testId)) return res.status(400).json({ error: 'invalid test id' });
+  if (Number.isNaN(testId)) {
+    return res.status(400).json({ error: 'invalid test id' });
+  }
   const userAnswers = Array.isArray(req.body.answers) ? req.body.answers : [];
 
   try {
     // Получаем все вопросы теста
-    const qRes = await pool.query('SELECT questions_id, question_text, question_type FROM questions WHERE questions_test_id = $1', [testId]);
+    const qRes = await pool.query(
+      'SELECT questions_id, question_text, question_type FROM questions WHERE questions_test_id = $1',
+      [testId],
+    );
     const questions = qRes.rows;
 
     let score = 0;
     const details = [];
 
     for (const q of questions) {
+      const normalizedType = normalizeQuestionType(q.question_type);
+
       // Получаем варианты
-      const optRes = await pool.query('SELECT option_id, variant_text, option_flag FROM options WHERE questions_id = $1 ORDER BY option_id', [q.questions_id]);
+      const optRes = await pool.query(
+        'SELECT option_id, variant_text, option_flag FROM options WHERE questions_id = $1 ORDER BY option_id',
+        [q.questions_id],
+      );
       const opts = optRes.rows;
 
-      // Определим правильный ответ в зависимости от типа
+      // Определим правильный ответ
       let correct = null;
-      if (q.question_type === 'single') {
-        const idx = opts.findIndex(o => {
-          const f = (o.option_flag || '').toString().toLowerCase();
-          return f === '1' || f === 'true' || f === 'correct';
-        });
+      if (normalizedType === 'single') {
+        const idx = opts.findIndex((o) => isCorrectFlag(o.option_flag));
         correct = idx >= 0 ? idx : 0;
-      } else if (q.question_type === 'multiple') {
+      } else if (normalizedType === 'multiple') {
         const arr = [];
         opts.forEach((o, i) => {
-          const f = (o.option_flag || '').toString().toLowerCase();
-          if (f === '1' || f === 'true' || f === 'correct') arr.push(i);
+          if (isCorrectFlag(o.option_flag)) arr.push(i);
         });
         correct = arr;
-      } else if (q.question_type === 'text') {
-        const o = opts.find(o => (o.option_flag || '').toString().toLowerCase() === 'correct');
+      } else if (normalizedType === 'text') {
+        const o = opts.find((o) => isCorrectFlag(o.option_flag));
         correct = o ? o.variant_text : '';
       }
 
       // Находим ответ пользователя для этого вопроса
-      const ua = userAnswers.find(a => String(a.question_id) === String(q.questions_id));
+      const ua = userAnswers.find(
+        (a) => String(a.question_id) === String(q.questions_id),
+      );
       let userAnswer = typeof ua !== 'undefined' ? ua.answer : null;
 
       // Оценка
       let isCorrect = false;
-      if (q.question_type === 'single') {
+      if (normalizedType === 'single') {
         isCorrect = Number(userAnswer) === Number(correct);
-      } else if (q.question_type === 'multiple') {
-        const uaArr = Array.isArray(userAnswer) ? userAnswer.map(Number) : [];
-        // Сравнение множественного набора
+      } else if (normalizedType === 'multiple') {
+        const uaArr = Array.isArray(userAnswer)
+          ? userAnswer.map(Number)
+          : [];
         const sortedA = [...uaArr].sort();
         const sortedB = [...correct].sort();
-        isCorrect = sortedA.length === sortedB.length && sortedA.every((v, i) => v === sortedB[i]);
-      } else if (q.question_type === 'text') {
+        isCorrect =
+          sortedA.length === sortedB.length &&
+          sortedA.every((v, i) => v === sortedB[i]);
+      } else if (normalizedType === 'text') {
         const a = (userAnswer || '').toString().trim().toLowerCase();
         const c = (correct || '').toString().trim().toLowerCase();
         isCorrect = a === c && a !== '';
@@ -183,10 +277,10 @@ app.post('/api/tests/:id/submit', async (req, res) => {
       details.push({
         question_id: q.questions_id,
         question: q.question_text,
-        type: q.question_type,
+        type: normalizedType,
         correct,
         userAnswer,
-        isCorrect
+        isCorrect,
       });
     }
 
@@ -204,6 +298,10 @@ app.post('/api/tests/:id/submit', async (req, res) => {
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+// ---------------------------
+// Server start
+// ---------------------------
 
 const port = process.env.PORT || 8103;
 app.listen(port, () => {
